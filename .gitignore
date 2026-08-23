@@ -5,32 +5,18 @@ service_account.json
 client_secrets.json
 token.pickle
 
-# Local Heavy Media Files
-*.mp4
-*.mp3
-*.wav
-*.mkv
-*.mov
-*.flac
-input_videos/*
-input_audio/*
+# Temporary & Output Media Files
 output_videos/*
-!input_videos/.gitkeep
-!input_audio/.gitkeep
-!input_images/.gitkeep
 !output_videos/.gitkeep
+output_thumbnails/*
 !output_thumbnails/.gitkeep
+temp_*.mp4
+*.log
 
-# Temporary & Test Crops
+# Python cache
 __pycache__/
 *.py[cod]
 *.class
 .venv/
 env/
 venv/
-temp_*.mp4
-*.log
-diff_*.png
-test_*.png
-output_thumbnails/*
-!output_thumbnails/.gitkeep
