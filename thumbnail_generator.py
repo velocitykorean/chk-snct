@@ -1,14 +1,16 @@
 """
 Chakra Healing YouTube Thumbnail Generator
-- Generates mystical, high-CTR spiritual thumbnails
-- Features sacred geometry, 7 Chakra radiant glow, and elegant typography (Cinzel / Playfair)
-- Uses high-converting power hooks & Solfeggio frequency badges (432Hz, 528Hz, 963Hz)
-- Output: Standard YouTube 1280x720 (16:9)
+- Generates mystical, high-CTR spiritual thumbnails (1280x720)
+- Automatically detects and removes AI/Gemini star watermarks via OpenCV inpainting
+- Clean, majestic typography (Cinzel / Playfair) without distracting underlines
+- Rich golden aura glow, deep ambient vignette, and Solfeggio frequency badges
 """
 
 import os
 import sys
 import random
+import cv2
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
 if sys.platform == 'win32':
@@ -25,6 +27,21 @@ CHAKRA_HOOKS = [
     {"main": "HEART HEALING", "sub": "ATTRACT LOVE & INNER HARMONY", "badge": "639Hz · CELLULAR REPAIR"},
     {"main": "AURA CLEANSE", "sub": "RELEASE BLOCKAGES & RESTORE PEACE", "badge": "SOLFEGGIO · 1 HOUR"}
 ]
+
+def remove_watermark(cv_img):
+    """Removes corner AI watermarks (e.g. Gemini star) seamlessly using OpenCV inpainting."""
+    h, w = cv_img.shape[:2]
+    mask = np.zeros((h, w), dtype=np.uint8)
+    
+    # Gemini watermark star zone in bottom-right corner
+    sx1 = int(w * 0.89)
+    sy1 = int(h * 0.83)
+    sx2 = int(w * 0.96)
+    sy2 = int(h * 0.94)
+    mask[sy1:sy2, sx1:sx2] = 255
+    
+    inpainted = cv2.inpaint(cv_img, mask, inpaintRadius=4, flags=cv2.INPAINT_TELEA)
+    return inpainted
 
 def get_font(font_name="Cinzel.ttf", size=56):
     """Load font with project fallback hierarchy."""
@@ -53,7 +70,7 @@ def get_font(font_name="Cinzel.ttf", size=56):
 
     return ImageFont.load_default()
 
-def apply_spiritual_vignette(img, intensity=0.32):
+def apply_spiritual_vignette(img, intensity=0.28):
     """Applies a rich mystical vignette to create depth and frame center energy."""
     W, H = img.size
     mask = Image.new("L", (W, H), 0)
@@ -65,7 +82,8 @@ def apply_spiritual_vignette(img, intensity=0.32):
 
 def create_chakra_thumbnail(bg_path, output_path, main_text=None, sub_text=None, badge_text=None):
     """
-    Creates an eye-catching, high-converting Chakra Healing YouTube thumbnail (1280x720).
+    Creates a clean, high-converting Chakra Healing YouTube thumbnail (1280x720).
+    Watermarks are automatically removed and typography is styled without lines.
     """
     if not main_text:
         preset = random.choice(CHAKRA_HOOKS)
@@ -75,10 +93,16 @@ def create_chakra_thumbnail(bg_path, output_path, main_text=None, sub_text=None,
     elif not badge_text:
         badge_text = "432Hz · 1 HOUR"
 
-    # 1. Open and resize/crop to 1280x720 (16:9)
-    img = Image.open(bg_path).convert("RGBA")
+    # 1. Load image & Inpaint watermark
+    cv_img = cv2.imread(bg_path)
+    if cv_img is not None:
+        clean_cv = remove_watermark(cv_img)
+        rgb_img = cv2.cvtColor(clean_cv, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(rgb_img).convert("RGBA")
+    else:
+        img = Image.open(bg_path).convert("RGBA")
+
     target_w, target_h = 1280, 720
-    
     img_ratio = img.width / img.height
     target_ratio = target_w / target_h
     
@@ -94,12 +118,8 @@ def create_chakra_thumbnail(bg_path, output_path, main_text=None, sub_text=None,
     img = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
     
     # Enhance vibrant golden and chakra colors
-    enhancer = ImageEnhance.Color(img)
-    img = enhancer.enhance(1.12)
-    
-    # Contrast bump
-    enhancer_con = ImageEnhance.Contrast(img)
-    img = enhancer_con.enhance(1.05)
+    img = ImageEnhance.Color(img).enhance(1.12)
+    img = ImageEnhance.Contrast(img).enhance(1.05)
     
     # 2. Add mystical vignette
     img = apply_spiritual_vignette(img, intensity=0.28)
@@ -112,23 +132,19 @@ def create_chakra_thumbnail(bg_path, output_path, main_text=None, sub_text=None,
     font_sub = get_font("PlayfairDisplay.ttf", size=30)
     font_badge = get_font("Cinzel.ttf", size=24)
     
-    # Bottom-left typography layout with generous margins
+    # Bottom-left typography layout
     x_pos = 70
-    y_base = target_h - 170
+    y_base = target_h - 165
     
-    # Subtitle / Category
+    # Subtitle (Clean glowing gold text with drop shadow, no harsh line)
     if sub_text:
-        # Subtle glowing line or tag
-        draw.text((x_pos + 1, y_base - 42 + 1), sub_text.upper(), font=font_badge, fill=(0, 0, 0, 200))
-        draw.text((x_pos, y_base - 42), sub_text.upper(), font=font_badge, fill=(255, 225, 160, 255))
-        # Golden accent line
-        line_y = y_base - 16
-        draw.line([(x_pos, line_y), (x_pos + 220, line_y)], fill=(255, 215, 0, 200), width=2)
+        for dx, dy in [(-2,2), (2,2), (0,2), (2,0), (-1,-1)]:
+            draw.text((x_pos + dx, y_base - 40 + dy), sub_text.upper(), font=font_badge, fill=(0, 0, 0, 230))
+        draw.text((x_pos, y_base - 40), sub_text.upper(), font=font_badge, fill=(255, 225, 150, 255))
         
-    # Main Headline (White with multi-directional deep glow drop shadow)
+    # Main Headline (Crisp brilliant white with multi-directional dark drop shadow)
     for dx, dy in [(-3,3), (3,3), (0,4), (4,4), (-2,-2), (2,-2)]:
-        draw.text((x_pos + dx, y_base + dy), main_text.upper(), font=font_main, fill=(0, 0, 0, 220))
-    # Crisp brilliant white & warm golden highlight
+        draw.text((x_pos + dx, y_base + dy), main_text.upper(), font=font_main, fill=(0, 0, 0, 240))
     draw.text((x_pos, y_base), main_text.upper(), font=font_main, fill=(255, 255, 255, 255))
     
     # Top-Right Solfeggio / Duration Badge
@@ -143,8 +159,8 @@ def create_chakra_thumbnail(bg_path, output_path, main_text=None, sub_text=None,
     draw.rounded_rectangle(
         [bx - padding_x, by - padding_y, bx + bw + padding_x, by + bh + padding_y],
         radius=10,
-        fill=(10, 15, 25, 180),
-        outline=(255, 215, 0, 160),
+        fill=(10, 15, 25, 190),
+        outline=(255, 215, 0, 180),
         width=2
     )
     draw.text((bx, by), badge_text, font=font_badge, fill=(255, 240, 200, 250))
@@ -157,9 +173,9 @@ def create_chakra_thumbnail(bg_path, output_path, main_text=None, sub_text=None,
     return output_path
 
 if __name__ == "__main__":
-    test_bg = os.path.join(SCRIPT_DIR, "input_images", "base_frame.jpg")
-    test_out = os.path.join(SCRIPT_DIR, "output_thumbnails", "Test_Chakra_Thumb.jpg")
+    test_bg = os.path.join(SCRIPT_DIR, "input_images", "Golden_figure_sitting_in_lotus_202608231719.jpeg")
+    test_out = os.path.join(SCRIPT_DIR, "output_thumbnails", "Chakra_Thumb_Clean.jpg")
     if os.path.exists(test_bg):
         create_chakra_thumbnail(test_bg, test_out, "ALL 7 CHAKRAS", "UNBLOCK & HEAL ENTIRE AURA", "432Hz · 1 HOUR")
     else:
-        print("[!] Base frame not found for testing.")
+        print("[!] Base background not found for testing.")
