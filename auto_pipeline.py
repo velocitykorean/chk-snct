@@ -178,15 +178,19 @@ def run_pipeline(duration=3600, dry_run=False, video_override=None, audio_overri
         
     # Step 5: Upload to Platforms (YouTube & Facebook)
     yt_video_id = None
-    try:
-        from publish_youtube import upload_to_youtube, set_video_thumbnail
-        print(f"\n[STEP 5] Uploading to YouTube...")
-        yt_video_id = upload_to_youtube(final_video_path, title, desc, tags=tags)
-        if yt_video_id:
-            set_video_thumbnail(yt_video_id, thumb_output)
-            print(f"🎉 SUCCESS! Published to YouTube: https://youtu.be/{yt_video_id}")
-    except Exception as e:
-        print(f"[YOUTUBE NOTE] YouTube API upload skipped ({e}). Video is ready in output_videos/")
+    upload_yt = os.getenv("UPLOAD_YOUTUBE", "true").lower() not in ("false", "0", "no")
+    if not upload_yt:
+        print("\n[youtube] Alternate-day schedule: Skipping YouTube upload today (Facebook will still publish).")
+    else:
+        try:
+            from publish_youtube import upload_to_youtube, set_video_thumbnail
+            print(f"\n[STEP 5] Uploading to YouTube...")
+            yt_video_id = upload_to_youtube(final_video_path, title, desc, tags=tags)
+            if yt_video_id:
+                set_video_thumbnail(yt_video_id, thumb_output)
+                print(f"🎉 SUCCESS! Published to YouTube: https://youtu.be/{yt_video_id}")
+        except Exception as e:
+            print(f"[YOUTUBE NOTE] YouTube API upload skipped ({e}). Video is ready in output_videos/")
 
     # Facebook Page Upload
     fb_video_id = None
